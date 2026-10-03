@@ -1,108 +1,89 @@
-# CycleGAN (NumPy from scratch)
+# CycleGAN in Pure NumPy
 
-A **from-scratch** implementation of **CycleGAN** (Zhu et al., *Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks*, arXiv:1703.10593) written **only with NumPy** (no PyTorch / no TensorFlow).
+A from-scratch reimplementation of CycleGAN with NumPy only: no PyTorch, no TensorFlow, no autograd. Every forward and backward pass is written by hand.
 
-This repository is mainly an educational project: it re-implements the paper’s building blocks (ResNet generator, 70×70 PatchGAN discriminator, LSGAN loss, cycle-consistency + identity losses) with explicit forward/backward passes.
+> **Paper reimplemented:** J.-Y. Zhu, T. Park, P. Isola, and A. A. Efros. *Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks.* ICCV, 2017. [arXiv:1703.10593](https://arxiv.org/abs/1703.10593)
 
-> Disclaimer: because everything is implemented “by hand” in NumPy, training is **slow**, memory-inefficient compared to modern frameworks, and the goal is **not** state-of-the-art performance.
+<p align="center">
+  <img src="assets/horse2zebra_BtoA.png" alt="Zebra to horse translation and reconstruction" width="45%">
+  &nbsp;
+  <img src="assets/apple2orange_BtoA.png" alt="Orange to apple translation and reconstruction" width="45%">
+</p>
+<p align="center"><sub>Test images after 20 epochs at 64 x 64. Each strip shows the input, its translation, and the cycle reconstruction. Left: zebra to horse. Right: orange to apple.</sub></p>
 
-## Repository structure
+CycleGAN learns to translate images between two domains, such as horses and zebras, without paired examples. Two generators translate in opposite directions, and a cycle consistency loss asks that translating an image and translating it back returns the original. The goal of this project is to understand each piece of the method by building it, and to check whether the cycle consistency effect still appears on a small CPU setup. The architecture and losses follow the paper.
 
-```
-CycleGAN/
-├─ 1703.10593v7.pdf           # Original paper (reference)
-├─ report.pdf                 # Project report / notes
-├─ download_data.sh           # Dataset downloader (Berkeley mirror)
-├─ train.py                   # Training script (CycleGAN loop)
-├─ test.py                    # Inference + simple test metrics
-├─ data.py                    # Data loading / preprocessing utilities
-├─ layers.py                  # NumPy layers + autograd-style backward
-├─ models.py                  # Generator / Discriminator architectures
-├─ optim.py                   # Adam optimizer
-└─ *.png                      # Example outputs
-```
+## Results
 
-## Setup
+Both datasets use the same setup: 150 images per side, 64 x 64 inputs, 20 epochs. One run takes about 2.5 hours on an Apple Silicon CPU.
 
-### Requirements
+Test-set ℓ1 errors at epoch 20 (pixels in [-1, 1], lower is better):
 
-- Python 3.10+ (should work with earlier 3.x too)
-- NumPy
-- Pillow
-- tqdm
-- curl + unzip (for dataset download)
+| Metric | horse2zebra | apple2orange |
+| --- | --- | --- |
+| Cycle A → B → A | 0.199 | 0.202 |
+| Cycle B → A → B | 0.224 | 0.219 |
+| Identity on A | 0.184 | 0.189 |
+| Identity on B | 0.216 | 0.213 |
 
-Install Python dependencies:
+The cycle loss decreases steadily on both datasets (from 0.73 to 0.32 on horse2zebra, from 0.84 to 0.31 on apple2orange), so the central idea of the paper reproduces at this scale. Color changes work well, but zebra stripes stay blurry at 64 x 64. The discriminator also wins too early: its loss falls below the LSGAN equilibrium of 0.25 around epoch 5 and reaches 0.04 at epoch 20. The full analysis is in the [report](docs/report.pdf).
+
+## Environment
+
+The project uses its own environment, `cyclegan-numpy`, defined in [`environment.yml`](environment.yml):
+
+- Python 3.12;
+- NumPy for all the computations, Pillow for images, and tqdm for progress bars.
+
+Everything runs on the CPU, and no GPU is needed. Downloading a dataset also needs `curl` and `unzip`.
 
 ```bash
-pip install numpy pillow tqdm
+mamba env create -f environment.yml   # create the environment once
+mamba activate cyclegan-numpy         # activate it in every new terminal
 ```
 
-## Download a dataset
+## Data
 
-Datasets are downloaded from the official Berkeley CycleGAN mirror.
+The datasets are the public ones of the original paper. `download_data.sh` fetches them from the official Berkeley mirror (apple2orange, horse2zebra, monet2photo, maps, and others).
+
+## Quick start
 
 ```bash
 ./download_data.sh apple2orange
+python train.py --data datasets/apple2orange --n_res 6 --max_per_side 150 --out runs/apple2orange_64
+python test.py --ckpt runs/apple2orange_64/ckpt/last.pkl --data datasets/apple2orange --n_res 6 --out results_apple2orange
 ```
 
-Available datasets (see `download_data.sh`):
+Every command and its options are in [docs/usage.md](docs/usage.md).
 
-- `apple2orange`, `summer2winter_yosemite`, `horse2zebra`
-- `monet2photo`, `cezanne2photo`, `ukiyoe2photo`, `vangogh2photo`
-- `maps`, `cityscapes`, `facades`, `iphone2dslr_flower`
-
-The script creates:
+## Repository layout
 
 ```
-datasets/<name>/{trainA,trainB,testA,testB}
+layers.py, models.py, optim.py   the network, written in NumPy
+data.py                          data loading
+train.py, test.py                training and evaluation
+download_data.sh                 dataset download
+assets/                          figures of this README
+docs/                            implementation, usage, and report
 ```
 
-## Train
+## Documentation
 
-Example (same pipeline / parameters as below):
+- [Implementation](docs/implementation.md): the layers, the architecture, the losses, and the training loop.
+- [Usage](docs/usage.md): setup and every command, with its options and outputs.
+- [Report](docs/report.pdf): the full write-up, with training curves and discussion.
 
-```bash
-python train.py \
-  --data datasets/apple2orange \
-  --size 64 --ngf 64 --ndf 64 --n_res 6 \
-  --epochs 20 --decay_start 10 \
-  --max_per_side 150 \
-  --out runs/apple2orange_64
-```
+## References
 
-Notes:
+- J.-Y. Zhu, T. Park, P. Isola, and A. A. Efros. Unpaired image-to-image translation using cycle-consistent adversarial networks. *ICCV*, 2017.
+- I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville, and Y. Bengio. Generative adversarial nets. *NeurIPS*, 2014.
+- J. Johnson, A. Alahi, and L. Fei-Fei. Perceptual losses for real-time style transfer and super-resolution. *ECCV*, 2016.
+- P. Isola, J.-Y. Zhu, T. Zhou, and A. A. Efros. Image-to-image translation with conditional adversarial networks. *CVPR*, 2017.
+- X. Mao, Q. Li, H. Xie, R. Y. K. Lau, Z. Wang, and S. P. Smolley. Least squares generative adversarial networks. *ICCV*, 2017.
+- D. Ulyanov, A. Vedaldi, and V. Lempitsky. Instance normalization: the missing ingredient for fast stylization. arXiv:1607.08022, 2016.
+- A. Odena, V. Dumoulin, and C. Olah. Deconvolution and checkerboard artifacts. *Distill*, 2016.
+- D. P. Kingma and J. Ba. Adam: a method for stochastic optimization. *ICLR*, 2015.
 
-- Checkpoints are saved to `--out/ckpt/` (`last.pkl` + per-epoch).
-- Sample grids are periodically saved to `--out/samples/`.
-- `--resume` can be used to resume from a checkpoint (`.pkl`).
+## License
 
-## Test / inference
-
-Generate translated images (and print simple cycle/identity L1 metrics):
-
-```bash
-python test.py \
-  --ckpt runs/apple2orange_64/ckpt/last.pkl \
-  --data datasets/apple2orange \
-  --size 64 --ngf 64 --n_res 6 \
-  --n_samples 20 --direction both \
-  --out results_apple2orange
-```
-
-This writes images like:
-
-- `results_apple2orange/AtoB_*.png` (A → B → A triplets)
-- `results_apple2orange/BtoA_*.png` (B → A → B triplets)
-
-Optional: add `--with_d` to also load discriminators and report their mean outputs.
-
-## Implementation details (quick)
-
-- **Generator**: Johnson-style ResNet with reflection padding + instance norm; upsampling is done with nearest-neighbor + conv (instead of transposed conv). See `models.py`.
-- **Discriminator**: 70×70 **PatchGAN**. See `models.py`.
-- **Losses**: **LSGAN** for GAN losses, plus cycle-consistency and identity losses. See `train.py`.
-
-## License / usage
-
-This code is provided for learning and experimentation. If you use it for anything beyond that, please cite the original CycleGAN paper.
+The code of this project is released under the [MIT License](LICENSE). Please cite the original CycleGAN paper if you build on it.

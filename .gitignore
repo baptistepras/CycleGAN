@@ -1,0 +1,9 @@
+# data and generated files
+datasets/
+runs/
+results_*/
+*.pkl
+
+# Python and system
+__pycache__/
+.DS_Store

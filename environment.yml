@@ -1,0 +1,10 @@
+# Environment for CycleGAN in pure NumPy.
+# CPU only: no deep learning framework is needed.
+name: cyclegan-numpy
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy       # all layers, losses, and the optimizer
+  - pillow      # image loading and saving
+  - tqdm        # progress bars
