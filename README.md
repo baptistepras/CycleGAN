@@ -32,7 +32,7 @@ The cycle loss decreases steadily on both datasets (from 0.73 to 0.32 on horse2z
 
 The project uses its own environment, `cyclegan-numpy`, defined in [`environment.yml`](environment.yml):
 
-- Python 3.12;
+- Python 3.10;
 - NumPy for all the computations, Pillow for images, and tqdm for progress bars.
 
 Everything runs on the CPU, and no GPU is needed. Downloading a dataset also needs `curl` and `unzip`.
@@ -76,7 +76,7 @@ docs/                            implementation, usage, and report
 ## References
 
 - J.-Y. Zhu, T. Park, P. Isola, and A. A. Efros. Unpaired image-to-image translation using cycle-consistent adversarial networks. *ICCV*, 2017.
-- I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville, and Y. Bengio. Generative adversarial nets. *NeurIPS*, 2014.
+- I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville, and Y. Bengio. Generative adversarial nets. *NIPS*, 2014.
 - J. Johnson, A. Alahi, and L. Fei-Fei. Perceptual losses for real-time style transfer and super-resolution. *ECCV*, 2016.
 - P. Isola, J.-Y. Zhu, T. Zhou, and A. A. Efros. Image-to-image translation with conditional adversarial networks. *CVPR*, 2017.
 - X. Mao, Q. Li, H. Xie, R. Y. K. Lau, Z. Wang, and S. P. Smolley. Least squares generative adversarial networks. *ICCV*, 2017.
